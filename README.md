@@ -2,11 +2,11 @@
 
 A config-driven, multi-tenant recommendation platform. **One codebase** serves
 many "advisors" (verticals); adding a vertical means inserting config rows, not
-writing code. The live demo seeds two: **HomePro Match** (find the right
+writing code. It ships with two live verticals: **HomePro Match** (find the right
 home-service contractor) and **Evently Concierge** (find the right event vendor)
 — same engine, same Provider schema, different branding and questions.
 
-> **Live demo:** **https://upwork-demo-106-multi-tenant-ai-rec.vercel.app**
+> **Live:** **https://upwork-demo-106-multi-tenant-ai-rec.vercel.app**
 > — try [`?tenant=homepro`](https://upwork-demo-106-multi-tenant-ai-rec.vercel.app/?tenant=homepro) vs [`?tenant=evently`](https://upwork-demo-106-multi-tenant-ai-rec.vercel.app/?tenant=evently)
 > **Repo:** https://github.com/berdyshevol/upwork-demo-106-multi-tenant-ai-recommendation-platform
 
@@ -37,7 +37,7 @@ home-service contractor) and **Evently Concierge** (find the right event vendor)
 The deterministic parts (browse, questionnaire, scoring, ranking) work with **no
 API key**. The AI parts (explanations, chat) are gated behind **BYOK** — you paste
 your own OpenAI key, stored encrypted in an HttpOnly cookie, used only for your
-session. The shared demo never bills the owner.
+session. The shared deployment never bills the owner.
 
 ## The hybrid recommendation engine (the centerpiece)
 
@@ -99,7 +99,7 @@ question-set row + its providers. No app code changes.
 
 ## Embeddings without billing surprises
 
-The demo defaults to a **deterministic** embedder (`EMBEDDINGS_PROVIDER=deterministic`):
+The platform defaults to a **deterministic** embedder (`EMBEDDINGS_PROVIDER=deterministic`):
 a hashing bag-of-tokens vector. RAG retrieval, seeding, and the entire test suite
 run **offline, deterministically, and free**. Set `EMBEDDINGS_PROVIDER=openai`
 (with `OPENAI_API_KEY` for the seed route) to use real OpenAI embeddings — query

@@ -7,7 +7,7 @@ import { supabaseAnon } from "./supabase/anon";
 /**
  * Data-access layer.
  *
- * Prefers Supabase when it's configured (the live demo path, which exercises RLS
+ * Prefers Supabase when it's configured (the production path, which exercises RLS
  * and pgvector). When Supabase env vars are absent — local dev, hermetic
  * Playwright runs, a fresh clone — it transparently falls back to the in-repo
  * seed data so every non-AI feature still works with zero infrastructure. The UI

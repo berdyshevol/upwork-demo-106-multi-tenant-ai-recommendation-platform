@@ -5,7 +5,7 @@ import { EMBED_DIM } from "./types";
 /**
  * Pluggable embedding provider.
  *
- * The demo defaults to a *deterministic* hash embedder so the whole RAG pipeline
+ * Defaults to a *deterministic* hash embedder so the whole RAG pipeline
  * — seed, retrieval, tests — runs with **zero OpenAI usage and zero owner
  * billing**, and produces byte-identical vectors every time (great for CI). Set
  * EMBEDDINGS_PROVIDER=openai (plus OPENAI_API_KEY for the seed route) to use real
@@ -22,7 +22,7 @@ export interface Embedder {
  * Deterministic embedder: a bag-of-token hashing trick. Each lowercased token is
  * hashed into the vector space and accumulated, then L2-normalised. Two texts
  * that share vocabulary land near each other under cosine similarity — enough for
- * a believable, fully offline semantic retrieval demo.
+ * a believable, fully offline semantic retrieval pipeline.
  */
 export class DeterministicEmbedder implements Embedder {
   constructor(private dim = EMBED_DIM) {}
