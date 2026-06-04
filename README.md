@@ -12,6 +12,16 @@ home-service contractor) and **Evently Concierge** (find the right event vendor)
 
 ---
 
+## Two tenants, one codebase
+
+| HomePro Match — `?tenant=homepro` | Evently Concierge — `?tenant=evently` |
+|:---:|:---:|
+| ![HomePro tenant](docs/screenshots/tenant-homepro.png) | ![Evently tenant](docs/screenshots/tenant-evently.png) |
+
+*Identical build and engine. Brand, colors, and the question set come entirely from config rows — proof of the single-codebase, config-driven claim.*
+
+---
+
 ## What it does
 
 1. **Tenant-branded landing.** Brand name, logo, colors, and the question set all
@@ -52,6 +62,12 @@ answers ─▶ deterministic scorer ─▶ ranked list (always)
   deterministic scores). It generates the "why it fits" explanation and answers
   chat follow-ups, with **citations grounded in actually-retrieved chunks** (the
   model writes prose; it cannot invent a source). Output is validated with zod.
+
+<p align="center">
+  <img src="docs/screenshots/recommendation-card.png" alt="A recommendation: deterministic score and reasons, the AI 'why it fits', and expandable RAG source citations" width="440" />
+</p>
+
+*A single recommendation card: the deterministic **0–100 score** and reasons (always shown), the AI **"why it fits"**, and the expandable **source citations** pulled from the provider's own documents.*
 
 ## Tech stack
 
