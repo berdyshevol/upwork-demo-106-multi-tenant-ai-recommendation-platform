@@ -6,8 +6,9 @@ writing code. The live demo seeds two: **HomePro Match** (find the right
 home-service contractor) and **Evently Concierge** (find the right event vendor)
 — same engine, same Provider schema, different branding and questions.
 
-> **Live demo:** _added after deploy_ · `?tenant=homepro` and `?tenant=evently`
-> **Repo:** _added after push_
+> **Live demo:** **https://upwork-demo-106-multi-tenant-ai-rec.vercel.app**
+> — try [`?tenant=homepro`](https://upwork-demo-106-multi-tenant-ai-rec.vercel.app/?tenant=homepro) vs [`?tenant=evently`](https://upwork-demo-106-multi-tenant-ai-rec.vercel.app/?tenant=evently)
+> **Repo:** https://github.com/berdyshevol/upwork-demo-106-multi-tenant-ai-recommendation-platform
 
 ---
 
