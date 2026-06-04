@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Adviso — design tokens
+  Dark-first palette. Brand vars get overridden per-tenant via inline style on the
+  root wrapper in page.tsx. Everything else is fixed.
+*/
+
+@layer base {
+  :root {
+    /* ── Neutrals ─────────────────────────────────────────────── */
+    --background:       222 28% 6%;
+    --foreground:       215 20% 92%;
+
+    --card:             222 24% 9%;
+    --card-foreground:  215 20% 92%;
+
+    --popover:          222 24% 9%;
+    --popover-foreground: 215 20% 92%;
+
+    --muted:            222 20% 13%;
+    --muted-foreground: 215 15% 55%;
+
+    --border:           222 18% 16%;
+    --input:            222 18% 13%;
+    --ring:             var(--brand);
+
+    --destructive:      0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* ── Brand defaults (HomePro teal — overridden per tenant) ── */
+    --brand:            172 66% 45%;
+    --brand-foreground: 170 80% 8%;
+    --brand-muted:      172 40% 22%;
+    --accent:           158 64% 52%;
+
+    /* ── Shape + type ─────────────────────────────────────────── */
+    --radius:           0.625rem;
+    --font-sans:        'Sora', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* Force dark on everything — we don't ship a light mode */
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    /* Subtle radial vignette gives depth without texture images */
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%,
+        hsl(var(--brand) / 0.06) 0%,
+        transparent 70%),
+      radial-gradient(ellipse 60% 40% at 80% 110%,
+        hsl(var(--accent) / 0.04) 0%,
+        transparent 60%);
+    background-attachment: fixed;
+  }
+
+  /* Smooth focus rings using brand color */
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Scrollbar (webkit) — keep it subtle */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+
+  /* Typography scale */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer utilities {
+  /* Glass-morphism card surface */
+  .glass {
+    background: hsl(var(--card) / 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Brand gradient used on CTAs */
+  .brand-gradient {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--brand)) 0%,
+      hsl(var(--accent)) 100%
+    );
+  }
+
+  /* Noise grain overlay on hero/header */
+  .noise::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  /* Score ring animation */
+  .score-ring {
+    stroke-dasharray: 283;
+    stroke-linecap: round;
+    transform-origin: center;
+    transform: rotate(-90deg);
+    transition: stroke-dashoffset 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
