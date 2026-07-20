@@ -1,17 +1,20 @@
+import { sql } from "drizzle-orm";
 import type { ChunkMatch } from "./types";
-import { isSupabaseConfigured } from "./data";
+import { isDbConfigured } from "./data";
 import { getEmbedder, type Embedder } from "./embeddings";
 import { SEED_PROVIDERS } from "./seed-data";
 import { chunkDocs } from "./chunk";
-import { supabaseAnon } from "./supabase/anon";
+import { withTenant } from "./db/tenant";
 
 /**
  * Vector retrieval over provider docs.
  *
- * Live: calls the `match_provider_chunks` RPC (pgvector, RLS-scoped by the anon
- * client's tenant header). Hermetic fallback: chunks the in-repo seed docs,
- * embeds them with the same (deterministic) embedder, and ranks by cosine in
- * memory — so chat/explanations retrieve real, citable snippets even with no DB.
+ * Live: calls the `match_provider_chunks` pgvector function on Neon, run INSIDE
+ * withTenant() so the `app.tenant_id` GUC drives RLS — the query physically
+ * cannot read another tenant's chunks. Hermetic fallback: chunks the in-repo
+ * seed docs, embeds them with the same (deterministic) embedder, and ranks by
+ * cosine in memory — so chat/explanations retrieve real, citable snippets even
+ * with no DB.
  */
 
 function cosine(a: number[], b: number[]): number {
@@ -94,21 +97,45 @@ export async function retrieveChunks(opts: {
 }): Promise<ChunkMatch[]> {
   const { tenantId, query, matchCount = 6, providerIds, apiKey } = opts;
 
-  if (!isSupabaseConfigured()) {
+  if (!isDbConfigured()) {
     return retrieveInMemory(tenantId, query, matchCount, providerIds);
   }
 
   try {
-    const embedder = getEmbedder(apiKey);
-    const queryEmbedding = await embedder.embed(query);
-    const { data, error } = await supabaseAnon(tenantId).rpc("match_provider_chunks", {
-      query_embedding: queryEmbedding,
-      match_tenant: tenantId,
-      match_count: matchCount,
-      filter_provider_ids: providerIds && providerIds.length > 0 ? providerIds : null,
-    });
-    if (error || !data) return retrieveInMemory(tenantId, query, matchCount, providerIds);
-    return data as ChunkMatch[];
+    const embedding = await getEmbedder(apiKey).embed(query);
+    // pgvector literal form: '[0.1,0.2,…]', cast to ::vector for the function arg.
+    const embeddingLiteral = "[" + embedding.join(",") + "]";
+    const filterArg =
+      providerIds && providerIds.length > 0
+        ? sql`array[${sql.join(
+            providerIds.map((id) => sql`${id}`),
+            sql`, `,
+          )}]::uuid[]`
+        : sql`null::uuid[]`;
+
+    const rows = await withTenant(tenantId, async (tx) =>
+      tx.execute(sql`
+        select id, provider_id, source, content, similarity
+        from match_provider_chunks(
+          ${embeddingLiteral}::vector,
+          ${tenantId}::uuid,
+          ${matchCount},
+          ${filterArg}
+        )
+      `),
+    );
+
+    const matches = rows as unknown as ChunkMatch[];
+    if (!matches || matches.length === 0) {
+      return retrieveInMemory(tenantId, query, matchCount, providerIds);
+    }
+    return matches.map((r) => ({
+      id: r.id,
+      provider_id: r.provider_id,
+      source: r.source,
+      content: r.content,
+      similarity: r.similarity,
+    }));
   } catch {
     return retrieveInMemory(tenantId, query, matchCount, providerIds);
   }

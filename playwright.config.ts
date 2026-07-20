@@ -4,7 +4,7 @@ const PORT = 3100;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 
 /**
- * Hermetic E2E config: starts the app with NO Supabase env (so it uses the
+ * Hermetic E2E config: starts the app with NO DB env (so it uses the
  * in-repo seed fallback) and deterministic embeddings. AI paths are driven by a
  * mock LLM keyed off the `sk-mock-` BYOK sentinel, so the whole suite runs
  * offline and deterministically.

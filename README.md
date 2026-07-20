@@ -75,7 +75,7 @@ answers ─▶ deterministic scorer ─▶ ranked list (always)
 |--------------|--------|
 | Web          | Next.js 15 (App Router) · TypeScript · TailwindCSS · shadcn/ui |
 | AI           | LangChain (JS) · OpenAI (`gpt-4o-mini`, BYOK) |
-| Data         | Supabase Postgres · **pgvector** · Row-Level Security |
+| Data         | Neon Postgres · **Drizzle ORM** · **pgvector** · Row-Level Security |
 | Embeddings   | Pluggable: deterministic (default, offline) or OpenAI `text-embedding-3-small` |
 | Deploy       | Vercel |
 | Tests        | Playwright (behavioral) + node:test (unit) |
@@ -120,19 +120,20 @@ lib/
   types.ts                 zod contract shared everywhere
   scoring.ts               deterministic engine (unit-tested)
   agent.ts                 LangChain agent + tools + validated output
-  retrieval.ts             pgvector RPC, with in-memory fallback
+  retrieval.ts             pgvector search via Drizzle, with in-memory fallback
   embeddings.ts            pluggable embedder (deterministic | openai)
   byok.ts                  AES-256-GCM cookie crypto
   tenants.ts / seed-data.ts  config + 16 seeded providers with docs
-supabase/migrations/0001_init.sql   schema, pgvector, RLS, match_provider_chunks RPC
-tests/                     Playwright behavioral + scoring unit tests
+  db/                      Drizzle schema + clients (getAppDb/getAdminDb) + withTenant
+drizzle/0001_init.sql      schema, pgvector, RLS policies, match_provider_chunks (SQL fn)
+tests/                     Playwright behavioral + scoring unit + live-Neon (tests/db) tests
 ```
 
-> **No-database fallback:** when Supabase env vars are absent, the data layer
-> transparently serves the in-repo seed data and retrieves with an in-memory
-> vector index — so a fresh clone, local dev, and the hermetic test suite all work
-> with zero infrastructure. With Supabase configured, the same code path uses
-> Postgres + pgvector + RLS.
+> **No-database fallback:** when the DB env (`APP_DATABASE_URL`) is absent, the
+> data layer transparently serves the in-repo seed data and retrieves with an
+> in-memory vector index — so a fresh clone, local dev, and the hermetic test
+> suite all work with zero infrastructure. With Neon configured, the same code
+> path uses Postgres + pgvector + engine-enforced RLS.
 
 ## Run it locally
 
@@ -144,14 +145,20 @@ pnpm dev                        # works immediately — no DB needed (seed fallb
 
 Add your OpenAI key in the in-app **Settings** panel to enable explanations + chat.
 
-### With a real Supabase
+### With a real Neon database
 
 ```bash
-supabase start                              # local, or use a cloud project
-supabase db push                            # applies supabase/migrations/0001_init.sql
-# set NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY
-pnpm seed                                   # chunk → embed → store providers
+# 1. Create a Neon database + the limited runtime role (see below), then set
+#    APP_DATABASE_URL + ADMIN_DATABASE_URL in .env.local (see .env.example).
+pnpm migrate                                # applies drizzle/0001_init.sql (extension, tables, RLS, grants)
+pnpm seed                                   # chunk → embed → store providers into Neon
 ```
+
+> The runtime role **must** be a plain SQL role created by the owner
+> (`create role adviso_app_rls login password '…' nobypassrls;`) — NOT a Neon
+> CLI/console role. Neon-managed roles carry `BYPASSRLS` + `neon_superuser` and
+> would silently ignore every RLS policy. `drizzle/0001_init.sql` refuses to run
+> if the role is missing or still has `BYPASSRLS`.
 
 ## Tests
 
@@ -163,17 +170,26 @@ pnpm test          # Playwright behavioral suite (hermetic: no DB, mock LM)
 The Playwright suite covers: questionnaire → recommendations with scores and
 sources; the BYOK gate (no key → AI disabled + hint; key → explanations + chat
 via a deterministic mock LM); tenant A vs B branding/questions from one build;
-and (against a live, seeded Supabase) RLS preventing cross-tenant reads.
+and (against a live, seeded Neon, via `tests/db/` + `tests/e2e/rls.spec.ts`) RLS
+preventing cross-tenant reads.
 
-## The Supabase migration
+## The Neon migration & tenant isolation
 
 The full schema lives in
-[`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql): it
-enables `pgvector`, creates `tenants`, `question_sets`, `providers`,
-`provider_chunks (vector(1536))`, `leads`, and `recommendations`, defines the
-`match_provider_chunks` RPC (cosine search, tenant- and provider-scoped), and
-applies RLS so the anon role only sees rows matching its `x-tenant-id` request
-header while the service role (server-only) can seed and write leads.
+[`drizzle/0001_init.sql`](drizzle/0001_init.sql): it enables `pgvector`, creates
+`tenants`, `question_sets`, `providers`, `provider_chunks (vector(1536))`,
+`leads`, and `recommendations`, defines the `match_provider_chunks` SQL function
+(cosine search, tenant- and provider-scoped), and applies RLS so the limited
+`adviso_app_rls` role only sees rows matching the `app.tenant_id` session
+setting, while the owner role (`neondb_owner`, server-only) seeds and writes
+leads bypassing RLS.
+
+Isolation is **engine-enforced**, not enforced by application `WHERE` clauses.
+The app never sends a raw tenant filter for private tables: `lib/db/tenant.ts`
+opens a transaction, sets `app.tenant_id` via `set_config(...)`, and runs the
+query as `adviso_app_rls` — Postgres RLS then makes another tenant's rows
+physically unreadable. `tests/e2e/rls.spec.ts` proves it against live Neon
+(scoped reads see only their tenant; a cross-tenant lead insert is rejected).
 
 ---
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { runSeed } from "@/lib/seed";
-import { isSupabaseConfigured } from "@/lib/data";
+import { isDbConfigured } from "@/lib/data";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -15,8 +15,8 @@ export const maxDuration = 120;
  * deterministic embedder (no key needed).
  */
 export async function POST(req: Request) {
-  if (!isSupabaseConfigured()) {
-    return NextResponse.json({ error: "Supabase is not configured" }, { status: 503 });
+  if (!isDbConfigured()) {
+    return NextResponse.json({ error: "Database is not configured" }, { status: 503 });
   }
 
   const required = process.env.SEED_SECRET;

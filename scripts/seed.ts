@@ -2,7 +2,7 @@
  * CLI seeder — `pnpm seed`.
  *
  * Loads .env.local / .env, then runs the same idempotent ingestion the admin
- * route uses. Run this once after `supabase db push` to populate the database.
+ * route uses. Run this after `npm run migrate` to populate the Neon database.
  */
 import { config } from "dotenv";
 config({ path: ".env.local" });
